@@ -5,7 +5,12 @@ import { ChromeLocalStorage } from "zustand-chrome-storage";
 
 type View = "home" | "settings" | "license-activated" | "license-error";
 
-export type Tab = string | { [groupId: string]: string[] };
+export type Tab = {
+  active: boolean;
+  groupId: string;
+  pinned: boolean;
+  url: string;
+};
 
 export type Space = {
   name: string;
@@ -19,6 +24,10 @@ export interface AppStore {
   setView: (view: View) => void;
   user: User | null;
   setUser: (user: User | null) => void;
+  accessToken: string | null;
+  setAccessToken: (token: string | null) => void;
+  refreshToken: string | null;
+  setRefreshToken: (token: string | null) => void;
   licenseKey: string;
   setLicenseKey: (key: string) => void;
   isLicenseValid: boolean;
@@ -41,6 +50,10 @@ export const useAppStore = create<AppStore>()(
       setView: (view) => set({ view }),
       user: null,
       setUser: (user) => set({ user }),
+      accessToken: null,
+      setAccessToken: (token) => set({ accessToken: token }),
+      refreshToken: null,
+      setRefreshToken: (token) => set({ refreshToken: token }),
       licenseKey: "",
       setLicenseKey: (key) => set({ licenseKey: key }),
       isLicenseValid: false,
@@ -94,6 +107,8 @@ export const useAppStore = create<AppStore>()(
       storage: createJSONStorage(() => ChromeLocalStorage),
       partialize: (state) => ({
         user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         licenseKey: state.licenseKey,
         isLicenseValid: state.isLicenseValid,
         spaces: state.spaces,

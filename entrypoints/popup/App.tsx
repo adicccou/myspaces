@@ -10,6 +10,14 @@ function App() {
   const view = useAppStore((state) => state.view);
   useListeners();
 
+  useEffect(() => {
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "rehydrate-app-store") {
+        useAppStore.persist.rehydrate();
+      }
+    });
+  }, []);
+
   if (view === "settings") {
     return (
       <div className="w-[400px] h-[500px] flex flex-col p-2">

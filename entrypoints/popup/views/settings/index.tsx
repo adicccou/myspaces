@@ -34,10 +34,9 @@ export function Account() {
     url.searchParams.set("client_id", OAUTH_2_CLIENT_ID);
     url.searchParams.set("response_type", "id_token");
     url.searchParams.set("access_type", "offline");
-    url.searchParams.set(
-      "redirect_uri",
-      `https://${browser.runtime.id}.chromiumapp.org`
-    );
+    const redirectUrl = browser.identity.getRedirectURL();
+    console.log("redirectUrl", redirectUrl);
+    url.searchParams.set("redirect_uri", redirectUrl);
     url.searchParams.set("scope", OAUTH_2_SCOPES.join(" "));
     browser.identity.launchWebAuthFlow(
       {

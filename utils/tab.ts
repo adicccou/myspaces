@@ -13,37 +13,16 @@ export async function getAllTabs(
   return tabs;
 }
 
-export async function parseTabsForSpace(windowId?: number) {
+export async function parseTabsForSpace(windowId?: number): Promise<Tab[]> {
   let allTabs = await getAllTabs(windowId);
-  const composedGroupIds = Object.fromEntries(
-    await Promise.all(
-      allTabs.map(async (tab) => [
-        tab.groupId,
-        tab.groupId === -1 ? null : await composeGroupId(tab.groupId),
-      ])
-    )
+  return await Promise.all(
+    allTabs
+      .filter((tab) => tab.url)
+      .map(async (tab) => ({
+        active: tab.active,
+        groupId: tab.groupId === -1 ? "-1" : await composeGroupId(tab.groupId),
+        pinned: tab.pinned,
+        url: tab.url!,
+      }))
   );
-  const groupedTabs = allTabs.reduce((acc, tab) => {
-    const currGroupId = composedGroupIds[tab.groupId];
-    if (currGroupId) {
-      const lastItem = acc[acc.length - 1];
-      if (lastItem && typeof lastItem !== "string") {
-        const lastGroupId = Object.keys(lastItem)[0];
-        if (currGroupId === lastGroupId) {
-          lastItem[currGroupId].push(tab.url!);
-          return acc;
-        } else {
-          acc.push({ [currGroupId]: [tab.url!] });
-          return acc;
-        }
-      }
-      acc.push({ [currGroupId]: [tab.url!] });
-      return acc;
-    } else {
-      acc.push(tab.url!);
-      return acc;
-    }
-  }, [] as Tab[]);
-
-  return groupedTabs;
 }

@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { Space } from "./popup/app-store";
 
 export default defineBackground(() => {
   browser.runtime.onStartup.addListener(async () => {
@@ -6,6 +7,9 @@ export default defineBackground(() => {
       state.activeSpaces = {};
       return state;
     });
+
+    await syncSpacesToLocal();
+    await syncSpacesToDatabase();
   });
 
   const debouncesHandleTabsUpdate = debounce(async () => {
@@ -30,9 +34,27 @@ export default defineBackground(() => {
   browser.tabs.onCreated.addListener(debouncesHandleTabsUpdate);
   browser.tabs.onRemoved.addListener(debouncesHandleTabsUpdate);
 
-  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "switch-space") {
-      switchToSpace(message.spaceId);
+  browser.runtime.onMessage.addListener(
+    async (message, sender, sendResponse) => {
+      if (message.type === "switch-space") {
+        switchToSpace(message.spaceId);
+      } else if (message.type === "sync-spaces-from-database") {
+        await syncSpacesToLocal();
+        await syncSpacesToDatabase();
+      }
+    }
+  );
+
+  browser.storage.local.onChanged.addListener(async (changes) => {
+    if (changes["app-storage"]) {
+      const newSpaces: Record<string, Space> | undefined = JSON.parse(
+        changes["app-storage"].newValue || null
+      )?.state?.spaces;
+      const oldSpaces = JSON.parse(changes["app-storage"].oldValue || null)
+        ?.state?.spaces;
+      if (newSpaces && !_.isEqual(newSpaces, oldSpaces)) {
+        await syncSpacesToDatabase();
+      }
     }
   });
 });
