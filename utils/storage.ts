@@ -27,5 +27,7 @@ export async function setAppState(
       version: await getAppStateVersion(),
     }),
   });
-  browser.runtime.sendMessage({ type: "rehydrate-app-store" });
+  try {
+    await browser.runtime.sendMessage({ type: "rehydrate-app-store" });
+  } catch (e) {}
 }

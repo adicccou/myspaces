@@ -41,6 +41,10 @@ export interface AppStore {
   activeSpaces: Record<string, number>;
   addActiveSpace: (spaceId: string, windowId: number) => void;
   resetActiveSpaces: () => void;
+  lastActiveSpaceId: null | string;
+  setLastActiveSpaceId: (spaceId: string) => void;
+
+  lastSyncedAt?: number;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -101,6 +105,8 @@ export const useAppStore = create<AppStore>()(
         set(() => ({
           activeSpaces: {},
         })),
+      lastActiveSpaceId: null,
+      setLastActiveSpaceId: (spaceId) => set({ lastActiveSpaceId: spaceId }),
     }),
     {
       name: "app-storage",
@@ -113,6 +119,7 @@ export const useAppStore = create<AppStore>()(
         isLicenseValid: state.isLicenseValid,
         spaces: state.spaces,
         activeSpaces: state.activeSpaces,
+        lastSyncedAt: state.lastSyncedAt,
       }),
     }
   )

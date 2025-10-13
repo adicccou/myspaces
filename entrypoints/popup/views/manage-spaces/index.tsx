@@ -17,7 +17,7 @@ export function ManageSpaces() {
 
   const sorted = useMemo(
     () =>
-      Object.entries(spaces).sort((a, b) => b[1].createdAt - a[1].createdAt),
+      Object.entries(spaces).sort((a, b) => a[1].createdAt - b[1].createdAt),
     [spaces]
   );
 
@@ -96,11 +96,12 @@ function Space({
       </div>
     );
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (disabled) return;
     browser.runtime.sendMessage({
       type: "switch-space",
       spaceId,
+      windowId: (await browser.windows.getCurrent()).id,
     });
   };
 
@@ -154,7 +155,7 @@ function Space({
 
 function AddSpace() {
   const addSpace = useAppStore((state) => state.addSpace);
-  const addActiveSpace = useAppStore((state) => state.addActiveSpace);
+  const spaces = useAppStore((state) => state.spaces);
   const [open, setOpen] = useState(false);
   const [spaceName, setSpaceName] = useState("New space");
 
@@ -164,20 +165,20 @@ function AddSpace() {
     const spaceId = crypto.randomUUID();
     await addSpace(spaceId, {
       name,
-      tabs: withTabs ? await parseTabsForSpace(currentWindow.id) : [],
+      tabs: withTabs
+        ? await parseTabsForSpace(currentWindow.id)
+        : [
+            {
+              url: "chrome://newtab/",
+              active: true,
+              groupId: "-1",
+              pinned: false,
+            },
+          ],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
-    if (!withTabs) {
-      const newWindow = await browser.windows.create({
-        type: "normal",
-        focused: true,
-      });
-      if (newWindow?.id) {
-        addActiveSpace(spaceId, newWindow.id);
-      }
-    }
     browser.runtime.sendMessage({
       type: "switch-space",
       spaceId,
@@ -229,7 +230,11 @@ function AddSpace() {
           </DropdownMenu>
         </div>
       ) : (
-        <Button variant="ghost" onClick={() => setOpen(true)}>
+        <Button
+          variant="ghost"
+          onClick={() => setOpen(true)}
+          disabled={Object.keys(spaces).length >= 3}
+        >
           <Plus /> Add space
         </Button>
       )}
