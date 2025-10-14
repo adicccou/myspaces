@@ -64,26 +64,32 @@ export const useAppStore = create<AppStore>()(
       setIsLicenseValid: (isValid) => set({ isLicenseValid: isValid }),
       spaces: {},
       setSpaces: (spaces) => set({ spaces }),
-      addSpace: (spaceId, space) =>
+      addSpace: (spaceId, space) => {
         set((state) => ({
           spaces: {
             ...state.spaces,
             [spaceId]: space,
           },
-        })),
-      updateSpace: (id, space) =>
+        }));
+        syncSpacesToDatabase();
+      },
+      updateSpace: (id, space) => {
         set((state) => ({
           spaces: {
             ...state.spaces,
             [id]: { ...state.spaces[id], ...space, updatedAt: Date.now() },
           },
-        })),
-      deleteSpace: (id) =>
+        }));
+        syncSpacesToDatabase();
+      },
+      deleteSpace: (id) => {
         set((state) => {
           const newSpaces = { ...state.spaces };
           delete newSpaces[id];
           return { spaces: newSpaces };
-        }),
+        });
+        syncSpacesToDatabase();
+      },
       activeSpaces: {},
       addActiveSpace: (spaceId, windowId) =>
         set((state) => {

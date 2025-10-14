@@ -17,7 +17,7 @@ export const useAuthListener = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("_event", _event, session);
+      if (_event !== "SIGNED_IN") return;
       setUser(session?.user || null);
       setAccessToken(session?.access_token || null);
       setRefreshToken(session?.refresh_token || null);

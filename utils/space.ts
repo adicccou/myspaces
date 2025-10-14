@@ -104,23 +104,16 @@ export async function switchToSpace(spaceId: string, windowId?: number) {
     });
 }
 
-async function syncSpacesToDatabase() {
+export async function syncSpacesToDatabase() {
   console.log("syncSpacesToDatabase");
   const appState = await getAppState();
   const userId = appState?.user?.id;
-  const accessToken = appState?.accessToken;
-  const refreshToken = appState?.refreshToken;
-  if (!userId || !accessToken || !refreshToken) {
+  if (!userId) {
     console.log("no user, skip sync spaces to supabase");
     return;
   }
 
   try {
-    await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-
     const { data: existingSpaces, error } = await supabase
       .from("spaces")
       .select("id, name, tabs, created_at, updated_at")
@@ -131,17 +124,16 @@ async function syncSpacesToDatabase() {
       return;
     }
 
-    const existingSpacesMap = _.keyBy(existingSpaces, "id");
+    const existingSpacesMap = parseSpacesFromDatabase(existingSpaces || []);
 
     // Find spaces to delete
     const spacesToDelete = _.difference(
       Object.keys(existingSpacesMap),
       Object.keys(appState?.spaces || {})
-    ).filter(
-      (sId) =>
-        !appState.lastSyncedAt ||
-        appState.lastSyncedAt >
-          new Date(existingSpacesMap[sId].updated_at).getTime()
+    ).filter((sId) =>
+      !appState.lastSyncedAt
+        ? false
+        : appState.lastSyncedAt > existingSpacesMap[sId].updatedAt
     );
 
     // Delete removed spaces
@@ -154,10 +146,7 @@ async function syncSpacesToDatabase() {
     const spacesToUpdate = Object.entries(appState.spaces).filter(
       ([id, space]) => {
         const existingSpace = existingSpacesMap[id];
-        return (
-          !existingSpace ||
-          space.updatedAt > new Date(existingSpace.updated_at).getTime()
-        );
+        return !existingSpace || space.updatedAt > existingSpace.updatedAt;
       }
     );
     // Update only changed spaces
@@ -179,32 +168,17 @@ async function syncSpacesToDatabase() {
     console.log(err);
   }
 }
-export const debouncedSyncSpacesToDatabase = _.debounce(
-  syncSpacesToDatabase,
-  500,
-  {
-    leading: false,
-    trailing: true,
-  }
-);
 
 async function syncSpacesToLocal() {
   console.log("syncSpacesToLocal");
   const appState = await getAppState();
   const userId = appState?.user?.id;
-  const accessToken = appState?.accessToken;
-  const refreshToken = appState?.refreshToken;
-  if (!userId || !accessToken || !refreshToken) {
+  if (!userId) {
     console.log("no user, skip sync spaces from supabase");
     return;
   }
 
   try {
-    await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-
     const { data: spacesFromDatabase, error } = await supabase
       .from("spaces")
       .select("id, name, tabs, created_at, updated_at")
@@ -216,26 +190,18 @@ async function syncSpacesToLocal() {
     }
 
     if (spacesFromDatabase) {
-      console.log("spacesFromDatabase", spacesFromDatabase);
-      const updatedSpaces = spacesFromDatabase
-        .filter(
-          ({ id, updated_at }) =>
+      const spacesFromDatabaseParsed = parseSpacesFromDatabase(
+        spacesFromDatabase || []
+      );
+      const updatedSpaces = Object.fromEntries(
+        Object.entries(spacesFromDatabaseParsed).filter(
+          ([id, space]) =>
             !appState.spaces[id] ||
-            new Date(updated_at).getTime() >
-              (appState.spaces[id].updatedAt || 0)
+            space.updatedAt > (appState.spaces[id].updatedAt || 0)
         )
-        .reduce((acc, space) => {
-          acc[space.id] = {
-            name: space.name,
-            tabs: space.tabs,
-            createdAt: new Date(space.created_at).getTime(),
-            updatedAt: new Date(space.updated_at).getTime(),
-          };
-          return acc;
-        }, {} as Record<string, any>);
+      );
 
       await setAppState((state) => {
-        console.log("state.spaces", JSON.parse(JSON.stringify(state.spaces)));
         state.spaces = {
           ...state.spaces,
           ...updatedSpaces,
@@ -258,19 +224,12 @@ async function clearDeletedSpacesFromLocal() {
   console.log("clearDeletedSpacesFromLocal");
   const appState = await getAppState();
   const userId = appState?.user?.id;
-  const accessToken = appState?.accessToken;
-  const refreshToken = appState?.refreshToken;
-  if (!userId || !accessToken || !refreshToken) {
+  if (!userId) {
     console.log("no user, skip sync spaces from supabase");
     return;
   }
 
   try {
-    await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-
     const { data: existingSpaces, error } = await supabase
       .from("spaces")
       .select("id")
@@ -281,7 +240,7 @@ async function clearDeletedSpacesFromLocal() {
       return;
     }
 
-    const existingSpacesMap = _.keyBy(existingSpaces, "id");
+    const existingSpacesMap = parseSpacesFromDatabase(existingSpaces || []);
 
     // Find spaces to delete
     const spacesToDelete = _.difference(
@@ -292,6 +251,7 @@ async function clearDeletedSpacesFromLocal() {
     await setAppState((state) => {
       const lastSyncedAt = state.lastSyncedAt;
       if (!lastSyncedAt) return state;
+
       spacesToDelete.forEach((sId) => {
         if (state.spaces[sId] && state.spaces[sId].updatedAt < lastSyncedAt) {
           delete state.spaces[sId];
@@ -325,6 +285,30 @@ export async function isSpaceOpen(space: Space, windowId: number) {
 }
 
 export async function syncSpaceChanges() {
+  console.log("syncSpaceChanges");
+  const appState = await getAppState();
+  const userId = appState?.user?.id;
+  const accessToken = appState?.accessToken;
+  const refreshToken = appState?.refreshToken;
+  if (!userId || !accessToken || !refreshToken) {
+    console.log("no user, skip sync spaces to supabase");
+    return;
+  }
+  const session = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (session.error) {
+    console.error("Error setting session:", session.error);
+    await setAppState((state) => {
+      state.user = null;
+      state.accessToken = null;
+      state.refreshToken = null;
+      return state;
+    });
+    return;
+  }
+
   await clearDeletedSpacesFromLocal();
   await syncSpacesToDatabase();
   await syncSpacesToLocal();
@@ -332,4 +316,20 @@ export async function syncSpaceChanges() {
     state.lastSyncedAt = Date.now();
     return state;
   });
+}
+export const debouncedSyncSpaceChanges = _.debounce(syncSpaceChanges, 500, {
+  leading: false,
+  trailing: true,
+});
+
+function parseSpacesFromDatabase(spaces: any[]): Record<string, Space> {
+  return spaces.reduce((acc, space) => {
+    acc[space.id] = {
+      name: space.name,
+      tabs: space.tabs,
+      createdAt: new Date(`${space.created_at}Z`).getTime(),
+      updatedAt: new Date(`${space.updated_at}Z`).getTime(),
+    };
+    return acc;
+  }, {} as Record<string, Space>);
 }
