@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { useAppStore } from "../../app-store";
 import googleLogo from "@/assets/google.svg";
 import userLogo from "@/assets/user.svg";
@@ -129,6 +129,11 @@ function License() {
     }
   };
 
+  const handleRemoveLicense = () => {
+    setLicenseKey("");
+    setIsLicenseValid(false);
+  };
+
   if (isLicenseValid) {
     return (
       <div className="text-base w-full bg-gray-100 p-4 rounded-lg flex flex-col space-y-4">
@@ -138,9 +143,16 @@ function License() {
 
         <div className="flex flex-col space-y-2 text-sm mt-2">
           <p className="font-semibold">License activated</p>
-          <div className="flex space-x-2 p-2 bg-white rounded-lg border-2">
+          <div className="flex space-x-2 p-2 bg-white rounded-lg border-2 items-center">
             <img src={checkMarkLogo} alt="Check Mark" className="w-6 h-6" />
-            <span>{licenseKey}</span>
+            <span className="line-clamp-1 truncate">{licenseKey}</span>
+            <Button
+              variant="ghost"
+              className="text-red-500"
+              onClick={handleRemoveLicense}
+            >
+              <Trash2 />
+            </Button>
           </div>
           <p>
             Having trouble?{" "}
@@ -176,14 +188,20 @@ function License() {
         <div className="flex space-x-2">
           <Input
             placeholder="license key"
-            className="flex-1"
+            className="flex-1 bg-white"
             value={licenseKey}
             onChange={(e) => setLicenseKey(e.target.value)}
           />
           <Button onClick={() => checkLicense()}>Enter</Button>
         </div>
         <p>
-          Having trouble? <a className="underline text-cyan-600">Contact us</a>
+          Having trouble?{" "}
+          <a
+            className="underline text-cyan-600"
+            href="mailto:dev.oilor@gmail.com"
+          >
+            Contact us
+          </a>
         </p>
       </div>
     </div>

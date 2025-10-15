@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Topbar } from "./components/topbar";
 import { ManageSpaces } from "./views/manage-spaces";
 import { useAppStore } from "./app-store";
@@ -18,16 +19,18 @@ function App() {
     );
   }
 
+  if (view === "home") {
+    return (
+      <div className="w-[400px] p-2">
+        <Topbar />
+        <ManageSpaces />
+      </div>
+    );
+  }
+
   return (
     <div className="w-[400px] h-[300px] flex flex-col p-2">
-      {view === "home" ? (
-        <>
-          <Topbar />
-          <div className="flex-1 min-h-0">
-            <ManageSpaces />
-          </div>
-        </>
-      ) : view === "license-activated" ? (
+      {view === "license-activated" ? (
         <LicenseActivated />
       ) : view === "license-error" ? (
         <LicenseError />

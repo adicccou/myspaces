@@ -300,12 +300,12 @@ export async function syncSpaceChanges() {
   });
   if (session.error) {
     console.error("Error setting session:", session.error);
-    await setAppState((state) => {
-      state.user = null;
-      state.accessToken = null;
-      state.refreshToken = null;
-      return state;
-    });
+    // await setAppState((state) => {
+    //   state.user = null;
+    //   state.accessToken = null;
+    //   state.refreshToken = null;
+    //   return state;
+    // });
     return;
   }
 

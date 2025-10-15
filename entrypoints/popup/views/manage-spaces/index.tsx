@@ -22,16 +22,16 @@ export function ManageSpaces() {
   );
 
   return (
-    <div className="h-full flex flex-col px-1">
+    <ScrollArea className="max-h-[500px] flex flex-col">
       {!sorted.length ? (
-        <div className="flex-1  flex items-center justify-center">
+        <div className="min-h-[200px]  flex items-center justify-center">
           <div className="flex flex-col items-center">
             <img src={noSpacesImg} alt="Empty state" className="size-16" />
             <p className="text-gray-400 text-base mt-2">No spaces yet</p>
           </div>
         </div>
       ) : (
-        <ScrollArea className="flex-1 min-h-0 flex flex-col">
+        <div className="min-h-[200px] flex flex-col">
           {sorted.map(([spaceId, space], i) => (
             <Space
               key={spaceId}
@@ -40,10 +40,12 @@ export function ManageSpaces() {
               disabled={!isLicenseValid && i >= 3}
             />
           ))}
-        </ScrollArea>
+        </div>
       )}
-      <AddSpace />
-    </div>
+      <div className="sticky bottom-0 bg-background z-1">
+        <AddSpace />
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -111,13 +113,13 @@ function Space({
         "flex items-center justify-between space-x-2 p-2 text-base hover:bg-gray-50 rounded-md",
         disabled && "opacity-75"
       )}
+      onClick={handleClick}
     >
       <div
         className={cn(
           "flex items-center space-x-2",
           !disabled && "cursor-pointer"
         )}
-        onClick={handleClick}
       >
         <span className="truncate max-w-48">{space.name}</span>
         <Badge variant="secondary" className="text-gray-500">
@@ -135,7 +137,12 @@ function Space({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={disabled}>
-            <Button variant="ghost">
+            <Button
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
               <EllipsisVertical />
             </Button>
           </DropdownMenuTrigger>
@@ -156,6 +163,7 @@ function Space({
 function AddSpace() {
   const addSpace = useAppStore((state) => state.addSpace);
   const spaces = useAppStore((state) => state.spaces);
+  const isLicenseValid = useAppStore((state) => state.isLicenseValid);
   const [open, setOpen] = useState(false);
   const [spaceName, setSpaceName] = useState("New space");
 
@@ -233,7 +241,7 @@ function AddSpace() {
         <Button
           variant="ghost"
           onClick={() => setOpen(true)}
-          disabled={Object.keys(spaces).length >= 3}
+          disabled={!isLicenseValid && Object.keys(spaces).length >= 3}
         >
           <Plus /> Add space
         </Button>
