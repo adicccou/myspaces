@@ -32,55 +32,6 @@ export function Account() {
   const setRefreshToken = useAppStore((state) => state.setRefreshToken);
   const setAccessToken = useAppStore((state) => state.setAccessToken);
 
-  const handleGoogleSignin = () => {
-    const url = new URL("https://accounts.google.com/o/oauth2/auth");
-    url.searchParams.set("client_id", OAUTH_2_CLIENT_ID);
-    url.searchParams.set("response_type", "id_token");
-    url.searchParams.set("access_type", "offline");
-    const redirectUrl = browser.identity.getRedirectURL();
-    console.log("redirectUrl", redirectUrl);
-    url.searchParams.set("redirect_uri", redirectUrl);
-    url.searchParams.set("scope", OAUTH_2_SCOPES.join(" "));
-    browser.identity.launchWebAuthFlow(
-      {
-        url: url.href,
-        interactive: true,
-      },
-      async (redirectedTo) => {
-        if (browser.runtime.lastError) {
-          console.log("auth was not successful", browser.runtime.lastError);
-        } else {
-          if (!redirectedTo) return;
-          // auth was successful, extract the ID token from the redirectedTo URL
-          const url = new URL(redirectedTo);
-          const params = new URLSearchParams(url.hash);
-          const idToken = params.get("#id_token");
-          if (!idToken) return;
-          const response = await supabase.auth.signInWithIdToken({
-            provider: "google",
-            token: idToken,
-          });
-          const { access_token, refresh_token } = response.data.session || {
-            access_token: null,
-            refresh_token: null,
-          };
-          const { user } = response.data;
-          if (access_token && refresh_token && user) {
-            setAccessToken(access_token);
-            setRefreshToken(refresh_token);
-            setUser(user);
-            browser.runtime.sendMessage(
-              {
-                type: "sync-spaces-from-database",
-              },
-              (response) => console.log("response", response)
-            );
-          }
-        }
-      }
-    );
-  };
-
   const handleSignout = async () => {
     try {
       const response = await supabase.auth.signOut();
@@ -119,7 +70,11 @@ export function Account() {
         <>
           <div
             className="flex items-center space-x-2 bg-white p-2 rounded-lg border-2 cursor-pointer"
-            onClick={handleGoogleSignin}
+            onClick={() => {
+              browser.runtime.sendMessage({
+                type: "google-signin",
+              });
+            }}
           >
             <img src={googleLogo} alt="Google Logo" className="w-6 h-6" />
             <span>Sign In with Google</span>

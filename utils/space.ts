@@ -286,26 +286,9 @@ export async function isSpaceOpen(space: Space, windowId: number) {
 
 export async function syncSpaceChanges() {
   console.log("syncSpaceChanges");
-  const appState = await getAppState();
-  const userId = appState?.user?.id;
-  const accessToken = appState?.accessToken;
-  const refreshToken = appState?.refreshToken;
-  if (!userId || !accessToken || !refreshToken) {
-    console.log("no user, skip sync spaces to supabase");
-    return;
-  }
-  const session = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
+  const session = await supabase.auth.getSession();
   if (session.error) {
     console.error("Error setting session:", session.error);
-    // await setAppState((state) => {
-    //   state.user = null;
-    //   state.accessToken = null;
-    //   state.refreshToken = null;
-    //   return state;
-    // });
     return;
   }
 
