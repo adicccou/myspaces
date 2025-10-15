@@ -48,17 +48,20 @@ export default defineBackground(() => {
     }
   });
 
-  browser.runtime.onMessage.addListener(
-    async (message, sender, sendResponse) => {
-      console.log("message: ", message.type);
-      if (message.type === "switch-space") {
-        switchToSpace(message.spaceId, message.windowId);
-      } else if (message.type === "sync-spaces-from-database") {
+  browser.runtime.onMessage.addListener((message, _, sendResponse) => {
+    if (message.type === "switch-space") {
+      switchToSpace(message.spaceId, message.windowId);
+    } else if (message.type === "sync-spaces-from-database") {
+      (async () => {
         await syncSpaceChanges();
         await refreshActiveSpaces();
-      }
+        sendResponse({
+          success: true,
+        });
+      })();
+      return true; // Keep the message channel open for async responses
     }
-  );
+  });
 
   const debouncedHandleTabsUpdate = _.debounce(
     async () => {

@@ -28,6 +28,9 @@ export function Settings() {
 
 export function Account() {
   const user = useAppStore((state) => state.user);
+  const setUser = useAppStore((state) => state.setUser);
+  const setRefreshToken = useAppStore((state) => state.setRefreshToken);
+  const setAccessToken = useAppStore((state) => state.setAccessToken);
 
   const handleGoogleSignin = () => {
     const url = new URL("https://accounts.google.com/o/oauth2/auth");
@@ -53,13 +56,41 @@ export function Account() {
           const params = new URLSearchParams(url.hash);
           const idToken = params.get("#id_token");
           if (!idToken) return;
-          await supabase.auth.signInWithIdToken({
+          const response = await supabase.auth.signInWithIdToken({
             provider: "google",
             token: idToken,
           });
+          const { access_token, refresh_token } = response.data.session || {
+            access_token: null,
+            refresh_token: null,
+          };
+          const { user } = response.data;
+          if (access_token && refresh_token && user) {
+            setAccessToken(access_token);
+            setRefreshToken(refresh_token);
+            setUser(user);
+            browser.runtime.sendMessage(
+              {
+                type: "sync-spaces-from-database",
+              },
+              (response) => console.log("response", response)
+            );
+          }
         }
       }
     );
+  };
+
+  const handleSignout = async () => {
+    try {
+      const response = await supabase.auth.signOut();
+    } catch (error) {
+      console.log("Error signing out:", error);
+    } finally {
+      setUser(null);
+      setAccessToken(null);
+      setRefreshToken(null);
+    }
   };
 
   return (
@@ -79,7 +110,7 @@ export function Account() {
           <p className="flex-1 truncate max-w-40">{user.email}</p>
           <div
             className="bg-white p-2 rounded-lg border-2 cursor-pointer"
-            onClick={() => supabase.auth.signOut()}
+            onClick={handleSignout}
           >
             Disconnect
           </div>
