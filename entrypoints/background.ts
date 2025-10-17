@@ -20,7 +20,7 @@ export default defineBackground(() => {
     Object.entries(activeSpaces).forEach(async ([spaceId, windowId]) => {
       const windows = await browser.windows.getAll();
       const isWindowExist = windows.find((w) => w.id === windowId);
-      if (appState.spaces[spaceId] || isWindowExist) {
+      if (appState.spaces[spaceId] && isWindowExist) {
         switchToSpace(spaceId, windowId);
       }
     });
@@ -51,6 +51,7 @@ export default defineBackground(() => {
   });
 
   const handleGoogleSignin = async () => {
+    console.log("handleGoogleSignin");
     const url = new URL("https://accounts.google.com/o/oauth2/auth");
     url.searchParams.set("client_id", OAUTH_2_CLIENT_ID);
     url.searchParams.set("response_type", "id_token");
@@ -65,6 +66,7 @@ export default defineBackground(() => {
         interactive: true,
       },
       async (redirectedTo) => {
+        console.log("redirectedTo", redirectedTo);
         if (browser.runtime.lastError) {
           console.log("auth was not successful", browser.runtime.lastError);
         } else {
