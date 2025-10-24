@@ -5,7 +5,6 @@ import userLogo from "@/assets/user.svg";
 import mySpacesLogo from "@/assets/mySpaces-preview.svg";
 import checkMarkLogo from "@/assets/check-mark.svg";
 import { supabase } from "../../supabase";
-import { OAUTH_2_CLIENT_ID, OAUTH_2_SCOPES } from "@/constants";
 
 export function Settings() {
   const setView = useAppStore((state) => state.setView);
@@ -122,7 +121,7 @@ function License() {
 
   if (isLicenseValid) {
     return (
-      <div className="text-base w-full bg-gray-100 p-4 rounded-lg flex flex-col space-y-4">
+      <div className="text-base w-full max-w-full bg-gray-100 p-4 rounded-lg flex flex-col space-y-4">
         <p className="font-bold">
           🙏Thanks for purchasing license and supporting our small extension
         </p>
@@ -131,7 +130,9 @@ function License() {
           <p className="font-semibold">License activated</p>
           <div className="flex space-x-2 p-2 bg-white rounded-lg border-2 items-center">
             <img src={checkMarkLogo} alt="Check Mark" className="w-6 h-6" />
-            <span className="line-clamp-1 truncate">{licenseKey}</span>
+            <span className="line-clamp-1 max-w-[35ch] truncate">
+              {licenseKey}
+            </span>
             <Button
               variant="ghost"
               className="text-red-500"
@@ -142,7 +143,12 @@ function License() {
           </div>
           <p>
             Having trouble?{" "}
-            <a className="underline text-cyan-600">Contact us</a>
+            <a
+              className="underline text-cyan-600 cursor-pointer"
+              href="mailto:dev.oilor@gmail.com"
+            >
+              Contact us
+            </a>
           </p>
         </div>
       </div>
@@ -150,7 +156,7 @@ function License() {
   }
 
   return (
-    <div className="text-base w-full bg-gray-100 p-4 rounded-lg flex flex-col space-y-4">
+    <div className="text-base w-full max-w-full bg-gray-100 p-4 rounded-lg flex flex-col space-y-4">
       <div className="flex space-x-2 items-start">
         <img src={mySpacesLogo} alt="MySpaces Logo" className="w-6 h-6 mr-4" />
         <div className="flex-1 flex flex-col text-sm">
@@ -183,7 +189,7 @@ function License() {
         <p>
           Having trouble?{" "}
           <a
-            className="underline text-cyan-600"
+            className="underline text-cyan-600 cursor-pointer"
             href="mailto:dev.oilor@gmail.com"
           >
             Contact us

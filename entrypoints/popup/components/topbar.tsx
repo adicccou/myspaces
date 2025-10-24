@@ -1,4 +1,4 @@
-import { CircleQuestionMark, Loader, RotateCcw, Star } from "lucide-react";
+import { CircleQuestionMark, Loader, RefreshCcw, Star } from "lucide-react";
 import { useAppStore } from "../app-store";
 import userLogo from "@/assets/user.svg";
 
@@ -28,52 +28,40 @@ export function Topbar() {
     <div className="flex justify-between items-center p-2 text-base">
       <div className="flex items-center space-x-2">
         <span className="font-bold">MySpaces</span>
-        <a href="https://oilor.co/" target="_blank" rel="noreferrer">
+        <a href="https://myspaces.app/" target="_blank" rel="noreferrer">
           <CircleQuestionMark size={20} fill="gray" stroke="white" />
         </a>
       </div>
-      <div
-        className="flex items-center space-x-2"
-        onClick={() => setView("settings")}
-      >
-        {!!user && (
-          <Tooltip>
-            <TooltipTrigger asChild className="justify-self-end">
-              <Button
-                variant="ghost"
-                className="text-muted-foreground justify-self-end"
-                disabled={refreshing}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRefreshSpaces();
-                }}
-              >
-                {refreshing ? (
-                  <Loader className="animate-spin" />
-                ) : (
-                  <RotateCcw />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Refresh spaces</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-        {!isLicenseValid && (
-          <button className="flex items-center gap-1 bg-[#FF9A61] py-0.5 px-2 rounded-xl text-white">
+      <div className="flex items-center space-x-2">
+        {!isLicenseValid ? (
+          <button
+            className="flex items-center gap-1 bg-[#FF9A61] py-0.5 px-2 rounded-xl text-white"
+            onClick={() => setView("settings")}
+          >
             <Star size={16} fill="white" />
             <span>Lifetime Pro</span>
           </button>
-        )}
+        ) : user ? (
+          <Button
+            variant="outline"
+            disabled={refreshing}
+            onClick={handleRefreshSpaces}
+          >
+            {refreshing ? <Loader className="animate-spin" /> : <RefreshCcw />}
+            Refresh spaces
+          </Button>
+        ) : null}
         {user ? (
           <img
             src={user.user_metadata.avatar_url || userLogo}
             alt="User Avatar"
             className="w-8 h-8 rounded-full"
+            onClick={() => setView("settings")}
           />
         ) : (
-          <button className="px-2">Sign In</button>
+          <button className="px-2" onClick={() => setView("settings")}>
+            Sign In
+          </button>
         )}
       </div>
     </div>

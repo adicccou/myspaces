@@ -121,7 +121,14 @@ function Space({
           !disabled && "cursor-pointer"
         )}
       >
-        <span className="truncate max-w-48">{space.name}</span>
+        <span
+          className={cn(
+            "truncate max-w-48",
+            disabled && "text-muted-foreground"
+          )}
+        >
+          {space.name}
+        </span>
         <Badge variant="secondary" className="text-gray-500">
           {totalTabs} tabs
         </Badge>
@@ -163,11 +170,17 @@ function Space({
 function AddSpace() {
   const addSpace = useAppStore((state) => state.addSpace);
   const spaces = useAppStore((state) => state.spaces);
+  const setView = useAppStore((state) => state.setView);
   const isLicenseValid = useAppStore((state) => state.isLicenseValid);
   const [open, setOpen] = useState(false);
   const [spaceName, setSpaceName] = useState("New space");
 
   const handleAddSpace = async (name: string, withTabs: boolean) => {
+    if (!isLicenseValid && Object.keys(spaces).length >= 3) {
+      setView("settings");
+      return;
+    }
+
     const currentWindow = await browser.windows.getCurrent();
 
     const spaceId = crypto.randomUUID();
@@ -238,11 +251,7 @@ function AddSpace() {
           </DropdownMenu>
         </div>
       ) : (
-        <Button
-          variant="ghost"
-          onClick={() => setOpen(true)}
-          disabled={!isLicenseValid && Object.keys(spaces).length >= 3}
-        >
+        <Button variant="ghost" onClick={() => setOpen(true)}>
           <Plus /> Add space
         </Button>
       )}
