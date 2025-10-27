@@ -76,13 +76,19 @@ export async function switchToSpace(spaceId: string, windowId?: number) {
   });
 
   Object.entries(groups)
-    .filter(([groupId, tabs]) => groupId !== "-1")
     .filter(
       ([__, tabs]) =>
         _.uniq((tabs || []).map((tab) => tab.groupId.toString())).length !== 1
     )
     .forEach(async ([groupId, tabs]) => {
-      if (groupId === "-1") return;
+      if (groupId === "-1") {
+        tabs?.forEach((tab) => {
+          if (tab.groupId !== -1) {
+            browser.tabs.ungroup(tab.id!);
+          }
+        });
+        return;
+      }
       const newGroup = await browser.tabs.group({
         tabIds: (tabs || []).map((tab) => tab.id!) as [number, ...number[]],
       });
@@ -125,22 +131,6 @@ export async function syncSpacesToDatabase() {
     }
 
     const existingSpacesMap = parseSpacesFromDatabase(existingSpaces || []);
-
-    // Find spaces to delete
-    const spacesToDelete = _.difference(
-      Object.keys(existingSpacesMap),
-      Object.keys(appState?.spaces || {})
-    ).filter((sId) =>
-      !appState.lastSyncedAt
-        ? false
-        : appState.lastSyncedAt > existingSpacesMap[sId].updatedAt
-    );
-
-    // Delete removed spaces
-    if (spacesToDelete.length > 0) {
-      await supabase.from("spaces").delete().in("id", spacesToDelete);
-      console.log("Deleted spaces from database:", spacesToDelete);
-    }
 
     // Find spaces to update
     const spacesToUpdate = Object.entries(appState.spaces).filter(
@@ -220,8 +210,8 @@ export const debouncedSyncSpacesToLocal = _.debounce(syncSpacesToLocal, 1500, {
   trailing: true,
 });
 
-async function clearDeletedSpacesFromLocal() {
-  console.log("clearDeletedSpacesFromLocal");
+async function clearDeletedDatabaseSpacesFromLocal() {
+  console.log("clearDeletedDatabaseSpacesFromLocal");
   const appState = await getAppState();
   const userId = appState?.user?.id;
   if (!userId) {
@@ -264,6 +254,48 @@ async function clearDeletedSpacesFromLocal() {
   }
 }
 
+async function clearDeletedLocalSpacesFromDatabase() {
+  console.log("clearDeletedLocalSpacesFromDatabase");
+  const appState = await getAppState();
+  const userId = appState?.user?.id;
+  if (!userId) {
+    console.log("no user, skip sync spaces from supabase");
+    return;
+  }
+
+  try {
+    const { data: existingSpaces, error } = await supabase
+      .from("spaces")
+      .select("id, updated_at")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error fetching existing spaces:", error);
+      return;
+    }
+
+    const existingSpacesMap = parseSpacesFromDatabase(existingSpaces || []);
+
+    // Find spaces to delete
+    const spacesToDelete = _.difference(
+      Object.keys(existingSpacesMap),
+      Object.keys(appState?.spaces || {})
+    ).filter((sId) =>
+      !appState.lastSyncedAt
+        ? false
+        : appState.lastSyncedAt > existingSpacesMap[sId].updatedAt
+    );
+
+    // Delete removed spaces
+    if (spacesToDelete.length > 0) {
+      await supabase.from("spaces").delete().in("id", spacesToDelete);
+      console.log("Deleted spaces from database:", spacesToDelete);
+    }
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 // equality comparison for spaces
 export function areSpacesEqual(
   spaceA: { name: string; tabs: any[] },
@@ -292,7 +324,8 @@ export async function syncSpaceChanges() {
     return;
   }
 
-  await clearDeletedSpacesFromLocal();
+  await clearDeletedDatabaseSpacesFromLocal();
+  await clearDeletedLocalSpacesFromDatabase();
   await syncSpacesToDatabase();
   await syncSpacesToLocal();
   await setAppState((state) => {
