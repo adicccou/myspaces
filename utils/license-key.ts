@@ -1,6 +1,6 @@
 export async function checkLicenseKey(licenseKey: string): Promise<boolean> {
   const activatedRes = await fetch(
-    "https://api.lemonsqueezy.com/v1/licenses/activate",
+    "https://api-cors-anywhere.lemonsqueezy.com/v1/licenses/activate",
     {
       method: "POST",
       headers: {
@@ -20,7 +20,7 @@ export async function checkLicenseKey(licenseKey: string): Promise<boolean> {
   if (activated) return true;
 
   const validateRes = await fetch(
-    "https://api.lemonsqueezy.com/v1/licenses/validate",
+    "https://api-cors-anywhere.lemonsqueezy.com/v1/licenses/validate",
     {
       method: "POST",
       headers: {
