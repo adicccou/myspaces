@@ -1,11 +1,5 @@
 import { Tab } from "@/entrypoints/popup/app-store";
 
-export async function getCurrentTab(): Promise<Browser.tabs.Tab | undefined> {
-  let queryOptions = { active: true, lastFocusedWindow: true };
-  let [tab] = await browser.tabs.query(queryOptions);
-  return tab;
-}
-
 export async function getAllTabs(
   windowId: number | undefined
 ): Promise<Browser.tabs.Tab[]> {
