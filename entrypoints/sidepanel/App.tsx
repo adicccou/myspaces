@@ -9,11 +9,22 @@ import { useListeners } from "./listeners";
 
 function App() {
   const view = useAppStore((state) => state.view);
+  const [hydrated, setHydrated] = useState(() => useAppStore.persist.hasHydrated());
   useListeners();
+
+  useEffect(() => {
+    const unsubscribe = useAppStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useAppStore.persist.hasHydrated()) setHydrated(true);
+    return unsubscribe;
+  }, []);
+
+  if (!hydrated) {
+    return <div className="min-h-screen h-screen" role="status" aria-label="Loading MySpaces" />;
+  }
 
   if (view === "settings") {
     return (
-      <div className="w-[400px] h-[500px] flex flex-col p-2">
+      <div className="min-h-screen w-full min-w-0 max-w-full flex flex-col p-2 overflow-x-hidden">
         <Settings />
       </div>
     );
@@ -21,7 +32,7 @@ function App() {
 
   if (view === "home") {
     return (
-      <div className="w-[400px] p-2">
+      <div className="min-h-screen h-screen flex flex-col p-2">
         <Topbar />
         <ManageSpaces />
       </div>
@@ -29,7 +40,7 @@ function App() {
   }
 
   return (
-    <div className="w-[400px] h-[300px] flex flex-col p-2">
+    <div className="min-h-screen flex flex-col p-2">
       {view === "license-activated" ? (
         <LicenseActivated />
       ) : view === "license-error" ? (

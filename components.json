@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "entrypoints/popup/style.css",
+    "css": "entrypoints/sidepanel/style.css",
     "baseColor": "slate",
     "cssVariables": true,
     "prefix": ""
