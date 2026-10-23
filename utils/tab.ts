@@ -1,16 +1,22 @@
 import { Tab } from "@/entrypoints/sidepanel/app-store";
 
+declare const __MYSPACES_FIREFOX__: boolean;
+
 export async function getAllTabs(
   windowId: number | undefined
 ): Promise<Browser.tabs.Tab[]> {
   return browser.tabs.query(windowId === undefined ? {} : { windowId });
 }
 
-/** Browser extension-management pages are transient browser UI, not Space tabs. */
+/** Browser management and extension pages are transient UI, not Space tabs. */
 export function isBrowserExtensionsPage(url?: string): boolean {
   if (!url) return false;
   try {
     const parsed = new URL(url);
+    if (__MYSPACES_FIREFOX__ && parsed.protocol === "moz-extension:") return true;
+    if (__MYSPACES_FIREFOX__ && parsed.protocol === "about:") {
+      return ["addons", "debugging"].includes(parsed.pathname.replace(/^\/+/, ""));
+    }
     return ["chrome:", "brave:", "edge:", "opera:"].includes(parsed.protocol) &&
       parsed.hostname === "extensions";
   } catch {

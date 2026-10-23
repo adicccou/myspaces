@@ -2,6 +2,8 @@ import { OAUTH_2_CLIENT_ID, OAUTH_2_SCOPES } from "@/constants";
 import { supabase } from "@/utils/supabase";
 import { getGooglePictureClaim } from "@/utils/google-profile";
 
+declare const __MYSPACES_FIREFOX__: boolean;
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
@@ -28,11 +30,19 @@ export async function signInWithGoogle() {
     new Uint8Array(nonceDigest),
     (byte) => byte.toString(16).padStart(2, "0"),
   ).join("");
-  const redirectUrl = browser.identity.getRedirectURL();
+  const extensionRedirectUrl = browser.identity.getRedirectURL();
+  // Firefox's default extensions.allizom.org redirect is not on a domain we
+  // control. Firefox provides this extension-specific loopback redirect for
+  // OAuth providers that require a verified redirect host.
+  const redirectUrl = __MYSPACES_FIREFOX__
+    ? `http://127.0.0.1/mozoauth2/${new URL(extensionRedirectUrl).hostname.split(".")[0]}`
+    : extensionRedirectUrl;
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authUrl.searchParams.set("client_id", OAUTH_2_CLIENT_ID);
   authUrl.searchParams.set("response_type", "id_token");
-  authUrl.searchParams.set("response_mode", "fragment");
+  // Firefox's identity flow reliably captures OAuth parameters in the query
+  // string, while Chromium's extension callback uses the standard fragment.
+  authUrl.searchParams.set("response_mode", __MYSPACES_FIREFOX__ ? "query" : "fragment");
   authUrl.searchParams.set("redirect_uri", redirectUrl);
   authUrl.searchParams.set("scope", OAUTH_2_SCOPES.join(" "));
   authUrl.searchParams.set("nonce", hashedNonce);
