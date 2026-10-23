@@ -1,0 +1,23 @@
+html.dropdown-layout,
+html.dropdown-layout body {
+  height: auto;
+  min-height: 0;
+}
+
+html.dropdown-layout body {
+  width: 380px;
+  min-width: 380px;
+}
+
+html.dropdown-layout #root,
+html.dropdown-layout #root > div {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+html.dropdown-layout #root > div > .flex-1 {
+  flex: 0 1 auto !important;
+  height: auto !important;
+  min-height: 252px !important;
+}
+

@@ -2,7 +2,7 @@
   "name": "myspaces",
   "description": "Create, organize your tabs by Spaces. Tab Manager",
   "private": true,
-  "version": "1.3.9",
+  "version": "1.3.11",
   "type": "module",
   "scripts": {
     "dev": "wxt",

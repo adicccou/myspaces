@@ -5,12 +5,33 @@ import userLogo from "@/assets/user.svg";
 import mySpacesLogo from "@/assets/mySpaces-preview.svg";
 import checkMarkLogo from "@/assets/check-mark.svg";
 import { getUserAvatarUrl } from "../../user-avatar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function Settings() {
   const setView = useAppStore((state) => state.setView);
+  const [toolbarPresentation, setToolbarPresentation] = useState<"side-panel" | "dropdown">("side-panel");
+  const [isLoadingPresentation, setIsLoadingPresentation] = useState(true);
+  const [presentationError, setPresentationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    browser.storage.local.get("myspaces-toolbar-presentation").then((stored) => {
+      setToolbarPresentation(stored["myspaces-toolbar-presentation"] === "dropdown" ? "dropdown" : "side-panel");
+    }).catch(() => setPresentationError("Could not load this preference.")).finally(() => setIsLoadingPresentation(false));
+  }, []);
+
+  const handlePresentationChange = async (presentation: "side-panel" | "dropdown") => {
+    setPresentationError(null);
+    setToolbarPresentation(presentation);
+    try {
+      const response = await browser.runtime.sendMessage({ type: "set-toolbar-presentation", presentation });
+      if (!response?.success) throw new Error(response?.error || "Could not save this preference.");
+    } catch (error) {
+      setPresentationError(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   return (
-    <ScrollArea className="h-full min-h-0 w-full min-w-0 max-w-full flex-1 overflow-x-hidden">
+    <div className="h-full min-h-0 w-full min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto">
       <div className="flex w-full min-w-0 max-w-full flex-col space-y-2">
         <Button
           onClick={() => setView("home")}
@@ -20,9 +41,31 @@ export function Settings() {
           <X />
         </Button>
         <Account />
+        <section className="flex w-full min-w-0 flex-col gap-2 rounded-lg bg-gray-100 p-4 text-base">
+          <p className="font-bold">Toolbar experience</p>
+          <div className="flex w-full min-w-0 rounded-lg border-2 border-gray-200 bg-white p-1" role="group" aria-label="Toolbar experience">
+            {(["side-panel", "dropdown"] as const).map((presentation) => {
+              const selected = toolbarPresentation === presentation;
+              return (
+                <button
+                  key={presentation}
+                  type="button"
+                  aria-pressed={selected}
+                  disabled={isLoadingPresentation}
+                  onClick={() => void handlePresentationChange(presentation)}
+                  className={`min-w-0 flex-1 rounded-md px-3 py-2 text-center transition-colors ${selected ? "bg-gray-100 font-semibold text-gray-950 shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  {presentation === "side-panel" ? "Side panel" : "Dropdown"}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-gray-600">Choose what opens when you click MySpaces in the browser toolbar. The change applies to your next toolbar click.</p>
+          {presentationError ? <p role="alert" className="text-sm text-red-600">{presentationError}</p> : null}
+        </section>
         <License />
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 
@@ -66,7 +109,7 @@ export function Account() {
     <div className="flex w-full min-w-0 max-w-full flex-col items-center text-base bg-gray-100 p-4 space-y-2 rounded-lg">
       <p className="font-bold">Account</p>
       {user ? (
-        <div className="flex w-full min-w-0 items-center space-x-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
           <div className="flex shrink-0">
             <img src={googleLogo} alt="Google Logo" className="w-10 h-10" />
 
@@ -161,7 +204,7 @@ function License() {
 
         <div className="flex flex-col space-y-2 text-sm mt-2">
           <p className="font-semibold">License activated</p>
-          <div className="flex w-full min-w-0 space-x-2 p-2 bg-white rounded-lg border-2 items-center">
+          <div className="flex w-full min-w-0 gap-2 p-2 bg-white rounded-lg border-2 items-center box-border">
             <img src={checkMarkLogo} alt="Check Mark" className="w-6 h-6 shrink-0" />
             <span className="min-w-0 flex-1 truncate">
               {licenseKey}

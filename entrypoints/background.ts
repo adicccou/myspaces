@@ -13,12 +13,22 @@ import { getAppState, setAppState } from "@/utils/storage";
 import { supabase } from "@/utils/supabase";
 
 export default defineBackground(() => {
-  const chromeSidePanel = (globalThis as any).chrome?.sidePanel;
-  if (chromeSidePanel?.setPanelBehavior) {
-    Promise.resolve(chromeSidePanel.setPanelBehavior({ openPanelOnActionClick: true })).catch((error) => {
-      console.warn("Could not enable MySpaces side panel on toolbar click:", error);
-    });
-  }
+  const toolbarPresentationKey = "myspaces-toolbar-presentation";
+  type ToolbarPresentation = "side-panel" | "dropdown";
+  const applyToolbarPresentation = async (presentation: ToolbarPresentation) => {
+    const action = (browser as any).action;
+    if (action?.setPopup) {
+      await action.setPopup({ popup: presentation === "dropdown" ? "dropdown.html" : "" });
+    }
+    const chromeSidePanel = (globalThis as any).chrome?.sidePanel;
+    if (chromeSidePanel?.setPanelBehavior) {
+      await chromeSidePanel.setPanelBehavior({ openPanelOnActionClick: presentation === "side-panel" });
+    }
+  };
+
+  void browser.storage.local.get(toolbarPresentationKey).then((stored) =>
+    applyToolbarPresentation(stored[toolbarPresentationKey] === "dropdown" ? "dropdown" : "side-panel")
+  ).catch((error) => console.warn("Could not initialize MySpaces toolbar presentation:", error));
 
   const switchingWindows = new Set<number>();
   const switchQueues = new Map<number, Promise<void>>();
@@ -374,7 +384,14 @@ export default defineBackground(() => {
   };
 
   browser.runtime.onMessage.addListener((message, _, sendResponse) => {
-    if (message.type === "switch-space") {
+    if (message.type === "set-toolbar-presentation") {
+      const presentation: ToolbarPresentation = message.presentation === "dropdown" ? "dropdown" : "side-panel";
+      void browser.storage.local.set({ [toolbarPresentationKey]: presentation })
+        .then(() => applyToolbarPresentation(presentation))
+        .then(() => sendResponse({ success: true, presentation }))
+        .catch((error) => sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) }));
+      return true;
+    } else if (message.type === "switch-space") {
       runSpaceSwitch(message.spaceId, message.windowId);
     } else if (message.type === "get-space-sync-status") {
       sendResponse({ status: currentSyncStatus, error: currentSyncError });

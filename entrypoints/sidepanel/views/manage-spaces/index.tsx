@@ -3,7 +3,6 @@ import {
   EllipsisVertical,
   Pen,
   Plus,
-  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -12,17 +11,17 @@ import {
   BookOpenIcon,
   BriefcaseIcon,
   CalendarDaysIcon,
-  ChartBarIcon,
+  ClipboardDocumentListIcon,
   CodeBracketIcon,
-  ComputerDesktopIcon,
+  FireIcon,
   HeartIcon,
   HomeIcon,
   LightBulbIcon,
   MusicalNoteIcon,
   PaintBrushIcon,
+  PlayCircleIcon,
   PuzzlePieceIcon,
   ShoppingBagIcon,
-  TrophyIcon,
 } from "@heroicons/react/24/solid";
 import type { ComponentType, SVGProps } from "react";
 import noSpacesImg from "@/assets/no-spaces.svg";
@@ -44,12 +43,12 @@ const SPACE_ICONS: { id: SpaceIconId; label: string; Icon: ComponentType<SVGProp
   { id: "briefcase", label: "Work", Icon: BriefcaseIcon },
   { id: "book-open", label: "Reading", Icon: BookOpenIcon },
   { id: "graduation-cap", label: "Study", Icon: AcademicCapIcon },
-  { id: "laptop", label: "Computer", Icon: ComputerDesktopIcon },
+  { id: "laptop", label: "Video", Icon: PlayCircleIcon },
   { id: "code", label: "Development", Icon: CodeBracketIcon },
-  { id: "chart", label: "Planning", Icon: ChartBarIcon },
+  { id: "chart", label: "Planning", Icon: ClipboardDocumentListIcon },
   { id: "calendar", label: "Schedule", Icon: CalendarDaysIcon },
   { id: "lightbulb", label: "Ideas", Icon: LightBulbIcon },
-  { id: "dumbbell", label: "Fitness", Icon: TrophyIcon },
+  { id: "dumbbell", label: "Fitness", Icon: FireIcon },
   { id: "gamepad", label: "Gaming", Icon: PuzzlePieceIcon },
   { id: "palette", label: "Creative", Icon: PaintBrushIcon },
   { id: "music", label: "Music", Icon: MusicalNoteIcon },
@@ -95,6 +94,7 @@ export function ManageSpaces() {
               key={spaceId}
               space={space}
               spaceId={spaceId}
+              spaceIndex={i}
               disabled={!isLicenseValid && i >= 3}
               dragged={draggedSpaceId === spaceId}
               dropTarget={dropTargetSpaceId === spaceId && draggedSpaceId !== spaceId}
@@ -127,6 +127,7 @@ export function ManageSpaces() {
 function Space({
   spaceId,
   space,
+  spaceIndex,
   disabled,
   dragged,
   dropTarget,
@@ -137,6 +138,7 @@ function Space({
 }: {
   spaceId: string;
   space: ISpace;
+  spaceIndex: number;
   disabled: boolean;
   dragged: boolean;
   dropTarget: boolean;
@@ -148,7 +150,6 @@ function Space({
   const { updateSpace, deleteSpace, activeSpaces, windowSpaces } = useAppStore();
   const [currentWindow, setCurrentWindow] = useState<number | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
-  const [iconSearch, setIconSearch] = useState("");
   const [value, setValue] = useState(space.name);
   const totalTabs = space.tabs
     .map((tab) => (typeof tab === "string" ? tab : Object.values(tab)[0]))
@@ -157,10 +158,9 @@ function Space({
     SPACE_ICONS.find(({ id }) => id === DEFAULT_SPACE_ICON)!;
   const iconColor = SPACE_ICON_COLORS.find(({ id }) => id === space.iconColor) ||
     SPACE_ICON_COLORS.find(({ id }) => id === DEFAULT_SPACE_ICON_COLOR)!;
-  const filteredIcons = SPACE_ICONS.filter(({ label }) =>
-    label.toLowerCase().includes(iconSearch.trim().toLowerCase())
-  );
-
+  const pickerSideOffset = document.documentElement.classList.contains("dropdown-layout")
+    ? 4 - 44 * spaceIndex
+    : 4;
   const isActive = currentWindow !== null
     ? (windowSpaces?.[currentWindow] ?? (activeSpaces[spaceId] === currentWindow ? spaceId : undefined)) === spaceId
     : false;
@@ -234,7 +234,7 @@ function Space({
           !disabled && "cursor-pointer"
         )}
       >
-        <DropdownMenu onOpenChange={(open) => !open && setIconSearch("")}>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={disabled}>
             <Button
               type="button"
@@ -251,27 +251,13 @@ function Space({
           <DropdownMenuContent
             side="bottom"
             align="start"
-            className="w-[280px] p-3"
+            sideOffset={pickerSideOffset}
+            className="max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height))] w-[280px] overflow-y-auto p-3"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key !== "Escape") event.stopPropagation();
             }}
           >
-            <div className="mb-3 flex items-center gap-2">
-              <div className="relative min-w-0 flex-1">
-                <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={iconSearch}
-                  onChange={(event) => setIconSearch(event.target.value)}
-                  placeholder="Search icons"
-                  aria-label="Search Space icons"
-                  className="h-9 pl-8"
-                />
-              </div>
-              {iconSearch && (
-                <Button variant="ghost" size="sm" onClick={() => setIconSearch("")}>Clear</Button>
-              )}
-            </div>
             <div className="mb-3 flex items-center justify-between" aria-label="Icon color">
               {SPACE_ICON_COLORS.map((color) => (
                 <button
@@ -290,7 +276,7 @@ function Space({
               ))}
             </div>
             <div className="grid grid-cols-5 gap-1" role="group" aria-label="Space icons">
-              {filteredIcons.map(({ id, label, Icon }) => (
+              {SPACE_ICONS.map(({ id, label, Icon }) => (
                 <button
                   key={id}
                   type="button"
@@ -307,9 +293,6 @@ function Space({
                 </button>
               ))}
             </div>
-            {!filteredIcons.length && (
-              <p className="py-3 text-center text-sm text-muted-foreground">No icons found</p>
-            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <span
